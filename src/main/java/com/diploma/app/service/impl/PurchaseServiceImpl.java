@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PurchaseServiceImpl implements PurchaseService {
@@ -30,7 +31,12 @@ public class PurchaseServiceImpl implements PurchaseService {
     }
 
     @Override
-    public Purchase findByIdAndCustomer(Integer id, Users user) {
+    public Optional<Purchase> findByIdAndCustomer(Integer id, Users user) {
         return purchaseRepository.findByIdAndCustomer(id, user);
+    }
+
+    @Override
+    public Optional<Purchase> findById(Integer id) {
+        return purchaseRepository.findById(id);
     }
 }

@@ -11,9 +11,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 
 @Component
@@ -39,7 +37,7 @@ public class CustomCommandLineRunner implements CommandLineRunner {
     public void run(String...args) throws Exception {
         if (!userService.existsByUserName("admin")) {
             Roles roleAdmin = roleRepository.findByName("ROLE_ADMIN");
-            List<Roles> adminRoles = new ArrayList<>();
+            Set<Roles> adminRoles = new HashSet<>();
             adminRoles.add(roleAdmin);
             Users admin = new Users();
             admin.setUserName("admin");

@@ -2,13 +2,12 @@ package com.diploma.app.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonIgnoreType;
 import io.swagger.annotations.ApiModel;
 import lombok.Data;
 
 import javax.persistence.*;
-import java.io.Serializable;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -16,20 +15,10 @@ import java.util.Set;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @ApiModel(value = "Product", description = "Product class")
-public class Product implements Serializable {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+public class Product extends BaseEntity {
 
     @Column(name = "name")
     private String name;
-
-    @Column(name = "price")
-    private Double price;
-
-    @Column(name = "discount")
-    private Double discount = 0.0;
 
     @Column(name = "barcode")
     private String barcode;
@@ -38,12 +27,57 @@ public class Product implements Serializable {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "supermarket_id")
-    private Supermarket supermarket;
-
-    @OneToMany(mappedBy = "purchase")
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.PERSIST, orphanRemoval = true)
     @JsonIgnore
-    private Set<PurchaseProduct> purchaseProducts = new HashSet<>();
+    private Set<SupermarketProduct> supermarketProducts;
 
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @JsonIgnore
+    private Set<PurchaseProduct> purchaseProducts;
+
+    public void addOrUpdateProduct(SupermarketProduct supermarketProduct) {
+        if (supermarketProducts == null) {
+            supermarketProducts = new HashSet<>();
+        }
+        if (supermarketProduct.getId() != null) {
+            supermarketProducts.removeIf(sp -> sp.getId().equals(supermarketProduct.getId()));
+        }
+        supermarketProducts.add(supermarketProduct);
+    }
+
+    public void removeProduct(Integer id) {
+        if (supermarketProducts == null) {
+            supermarketProducts = new HashSet<>();
+        }
+        supermarketProducts.removeIf(sp -> sp.getId().equals(id));
+    }
+
+    public void addPurchaseProduct(PurchaseProduct purchaseProduct) {
+        if (purchaseProducts == null) {
+            purchaseProducts = new HashSet<>();
+        }
+        purchaseProducts.add(purchaseProduct);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Product)) return false;
+        if (!super.equals(o)) return false;
+        Product product = (Product) o;
+        return Objects.equals(getName(), product.getName()) && Objects.equals(getBarcode(), product.getBarcode()) && Objects.equals(getCategory(), product.getCategory()) && Objects.equals(getSupermarketProducts(), product.getSupermarketProducts()) && Objects.equals(getPurchaseProducts(), product.getPurchaseProducts());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getName(), getBarcode(), getCategory(), getSupermarketProducts(), getPurchaseProducts());
+    }
+
+    @Override
+    public String toString() {
+        return "Product{" +
+                "name='" + name + '\'' +
+                ", barcode='" + barcode + '\'' +
+                '}';
+    }
 }

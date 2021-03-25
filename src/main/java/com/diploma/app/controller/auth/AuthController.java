@@ -4,6 +4,7 @@ import com.diploma.app.dto.AuthRequestDto;
 import com.diploma.app.dto.ForgotPasswordDto;
 import com.diploma.app.dto.PasswordResetDto;
 import com.diploma.app.dto.RegistrationDto;
+import com.diploma.app.exceptions.NotUniqueUserException;
 import com.diploma.app.model.*;
 import com.diploma.app.security.jwt.JwtTokenProvider;
 import com.diploma.app.service.EmailService;
@@ -13,6 +14,7 @@ import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,6 +24,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
 import java.util.*;
@@ -73,10 +76,8 @@ public class AuthController {
             Map<String, Object> response = new HashMap<>();
             response.put("userName", userName);
             response.put("token", token);
-            LOGGER.trace("User with username:" + userName + " successfully logged in." );
             return ResponseEntity.ok(response);
         } catch (AuthenticationException e) {
-            LOGGER.error(e.getLocalizedMessage());
             throw new BadCredentialsException("Invalid username or password");
         }
     }
@@ -98,12 +99,10 @@ public class AuthController {
                 return ResponseEntity.ok(response);
             }
             else {
-                response.put("response", "Username is not available");
-                return ResponseEntity.badRequest().body(response);
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email exists", new NotUniqueUserException("Username exists"));
             }
         } else {
-            response.put("response", "Email is not unique");
-            return ResponseEntity.badRequest().body(response);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email exists", new NotUniqueUserException("Username exists"));
         }
     }
 
@@ -113,8 +112,7 @@ public class AuthController {
         Map<String, String> response = new HashMap<>();
         Users user = userService.findByEmail(forgotPasswordDto.getEmail());
         if (user == null) {
-            response.put("response", "User with this email not found.");
-            return ResponseEntity.badRequest().body(response);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User with email:" + forgotPasswordDto.getEmail() + "not found");
         }
 
         passwordResetTokenService.deleteAllByUser(user);
@@ -125,7 +123,6 @@ public class AuthController {
         passwordResetToken.setUser(user);
         passwordResetTokenService.save(passwordResetToken);
         emailService.sendEmail(constructEmail(user.getEmail(), passwordResetToken));
-        LOGGER.trace("User with username: " + user.getUserName() + "received confirmation code to email.");
         response.put("response", "Code for reset is sent to your email");
         return ResponseEntity.ok().body(response);
 
@@ -137,19 +134,16 @@ public class AuthController {
         Map<String, String> response = new HashMap<>();
         Users user = userService.findByEmail(passwordResetDto.getEmail());
         if (user == null){
-            response.put("response", "User with this email not found");
-            return ResponseEntity.badRequest().body(response);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User with email:" + passwordResetDto.getEmail() + "not found");
         }
         PasswordResetToken passwordResetToken = passwordResetTokenService.findByUser(user);
         if (passwordResetToken == null){
-            response.put("response", "Invalid attempt to reset password.");
-            return ResponseEntity.badRequest().body(response);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid attempt to reset password");
         }
 
         if (passwordResetToken.isExpired()) {
             passwordResetTokenService.deleteAllByUser(passwordResetToken.getUser());
-            response.put("response", "Token is expired. Try again.");
-            return ResponseEntity.badRequest().body(response);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password reset time is up");
         } else {
             if (passwordResetToken.getAttempts()>0) {
                 if (passwordResetDto.getToken().equals(passwordResetToken.getToken())) {
@@ -163,15 +157,11 @@ public class AuthController {
                 } else {
                     passwordResetToken.setAttempts(passwordResetToken.getAttempts()-1);
                     passwordResetTokenService.save(passwordResetToken);
-                    response.put("response", "Incorrect code. " + passwordResetToken.getAttempts() + " attempt(s) left.");
-                    LOGGER.trace("User: " + user.getUserName() + " failed password reset attempt #" + (3-passwordResetToken.getAttempts()));
-                    return ResponseEntity.badRequest().body(response);
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Incorrect code. " + passwordResetToken.getAttempts() + " attempt(s) left.");
                 }
             } else {
                 passwordResetTokenService.deleteAllByUser(passwordResetToken.getUser());
-                response.put("response", "All attempts run out. Try again.");
-                LOGGER.trace("User: " + user.getUserName() + " failed all attempts. Deleting all tokens.");
-                return ResponseEntity.badRequest().body(response);
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "All attempts run out. Try again.");
             }
 
         }

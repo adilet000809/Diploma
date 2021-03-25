@@ -13,7 +13,8 @@ import java.util.Date;
 @ApiModel(value = "Password token", description = "PasswordReset token class for storing token")
 public class PasswordResetToken {
 
-    private static final int TOKEN_LIFE = 1;
+    private static final int TOKEN_LIFE = 10;
+    private static final int MAX_ATTEMPTS = 3;
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -23,7 +24,7 @@ public class PasswordResetToken {
     private String token;
 
     @Column(name = "attempts", nullable = false, unique = true)
-    private Integer attempts = 3;
+    private Integer attempts = MAX_ATTEMPTS;
 
     @OneToOne(targetEntity = Users.class, fetch = FetchType.EAGER)
     @JoinColumn(nullable = false, name = "users_id")
@@ -34,7 +35,7 @@ public class PasswordResetToken {
 
     public void setExpiration() {
         Calendar now = Calendar.getInstance();
-        now.add(Calendar.HOUR, TOKEN_LIFE);
+        now.add(Calendar.MINUTE, TOKEN_LIFE);
         this.expiration = now.getTime();
     }
 

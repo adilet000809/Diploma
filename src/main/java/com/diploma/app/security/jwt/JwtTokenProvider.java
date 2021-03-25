@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class JwtTokenProvider {
@@ -34,7 +35,7 @@ public class JwtTokenProvider {
         this.userService = userService;
     }
 
-    public String createToken(String username, List<Roles> roles) {
+    public String createToken(String username, Set<Roles> roles) {
 
         Claims claims = Jwts.claims().setSubject(username);
         claims.put("roles", getRoleNames(roles));
@@ -80,7 +81,7 @@ public class JwtTokenProvider {
                 && claims.getBody().getIssuedAt().after(user.getPasswordLastChangedDate());
     }
 
-    private List<String> getRoleNames(List<Roles> userRoles) {
+    private List<String> getRoleNames(Set<Roles> userRoles) {
         List<String> result = new ArrayList<>();
 
         userRoles.forEach(role -> {

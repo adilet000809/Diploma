@@ -1,3 +1,4 @@
+/*
 package com.diploma.app.firebase;
 
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -35,3 +36,4 @@ public class FirebaseService {
     }
 
 }
+*/

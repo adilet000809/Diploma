@@ -8,8 +8,9 @@ import com.diploma.app.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -24,13 +25,16 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Users save(Users user) {
+        return userRepository.save(user);
+    }
+
+    @Override
     public Users register(Users user) {
         Roles roleUser = roleRepository.findByName("ROLE_USER");
-        List<Roles> userRoles = new ArrayList<>();
+        Set<Roles> userRoles = new HashSet<>();
         userRoles.add(roleUser);
-
         user.setRoles(userRoles);
-
         return userRepository.save(user);
     }
 
@@ -74,5 +78,13 @@ public class UserServiceImpl implements UserService {
     public boolean existsByUserName(String userName) {
         return userRepository.existsByUserName(userName);
     }
+
+    @Override
+    public void makeManager(Users user) {
+        Roles roleManager = roleRepository.findByName("ROLE_MANAGER");
+        user.addRole(roleManager);
+        userRepository.save(user);
+    }
+
 }
 

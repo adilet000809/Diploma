@@ -12,14 +12,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import springfox.documentation.builders.PathSelectors;
-import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spring.web.plugins.Docket;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
-import java.io.IOException;
 import java.util.Properties;
 
 @SpringBootApplication
@@ -52,16 +45,16 @@ public class AppApplication {
         return mailSender;
     }
 
-    @Bean
-    FirebaseMessaging firebaseMessaging() throws IOException {
-        GoogleCredentials googleCredentials = GoogleCredentials
-                .fromStream(new ClassPathResource("diploma-c2904-firebase-adminsdk-g30nc-a412a9f2da.json").getInputStream());
-        FirebaseOptions firebaseOptions = FirebaseOptions
-                .builder()
-                .setCredentials(googleCredentials)
-                .build();
-        FirebaseApp app = FirebaseApp.initializeApp(firebaseOptions, "Diploma");
-        return FirebaseMessaging.getInstance(app);
-    }
+//    @Bean
+//    FirebaseMessaging firebaseMessaging() throws IOException {
+//        GoogleCredentials googleCredentials = GoogleCredentials
+//                .fromStream(new ClassPathResource("diploma-c2904-firebase-adminsdk-g30nc-a412a9f2da.json").getInputStream());
+//        FirebaseOptions firebaseOptions = FirebaseOptions
+//                .builder()
+//                .setCredentials(googleCredentials)
+//                .build();
+//        FirebaseApp app = FirebaseApp.initializeApp(firebaseOptions, "Diploma");
+//        return FirebaseMessaging.getInstance(app);
+//    }
 
 }
