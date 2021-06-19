@@ -7,9 +7,11 @@ import lombok.Data;
 @Data
 @ApiModel(value = "EmailChangeDTO", description = "DTO for email change. Stores password and new email")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class EmailChangeDto {
+public class ProfileChangeDto {
 
+    private String firstName;
+    private String lastName;
+    private String userName;
     private String email;
-    private String password;
 
 }

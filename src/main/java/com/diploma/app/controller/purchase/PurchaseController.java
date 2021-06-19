@@ -3,6 +3,7 @@ package com.diploma.app.controller.purchase;
 import com.diploma.app.dto.PurchaseProductDto;
 import com.diploma.app.model.Purchase;
 import com.diploma.app.model.PurchaseProduct;
+import com.diploma.app.model.Users;
 import com.diploma.app.service.*;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,8 +40,9 @@ public class PurchaseController {
     public ResponseEntity<Map<String, String>> confirmPurchase(@RequestBody List<PurchaseProductDto> purchaseProducts) {
 
         Map<String, String> response = new HashMap<>();
+        Users customer = userService.findByUserName(getUserDetails().getUsername());
         Purchase purchase = purchaseService.save(new Purchase());
-        purchase.setCustomer(userService.findByUserName(getUserDetails().getUsername()));
+        purchase.setCustomer(customer);
         Optional<PurchaseProduct> product;
         double total = 0.0;
         for (PurchaseProductDto purchaseProduct: purchaseProducts) {
@@ -53,6 +55,7 @@ public class PurchaseController {
             }
         }
         purchase.setTotal(total);
+        customer.setTotal(customer.getTotal() + total);
         purchaseService.save(purchase);
         response.put("response", "Success");
         return ResponseEntity.ok().body(response);

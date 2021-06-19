@@ -1,19 +1,15 @@
 package com.diploma.app.security.jwt;
 
-import com.diploma.app.controller.auth.AuthController;
 import com.diploma.app.model.Roles;
 import com.diploma.app.model.Users;
 import com.diploma.app.service.UserService;
 import io.jsonwebtoken.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
-
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.Date;
@@ -24,9 +20,6 @@ import java.util.Set;
 public class JwtTokenProvider {
 
     private final String secret = "Adilet diploma project";
-    private final Logger LOGGER = LoggerFactory.getLogger(JwtTokenProvider.class);
-
-
     private final UserDetailsService userDetailsService;
     private final UserService userService;
 
@@ -74,20 +67,15 @@ public class JwtTokenProvider {
         UserDetails userDetails = this.userDetailsService.loadUserByUsername(getUsername(token));
         String username = userDetails.getUsername();
         Users user = userService.findByUserName(username);
-        LOGGER.trace("Token validation of user: " + username + ". ");
-        LOGGER.trace("User: " + username + ". Is token expired: " + claims.getBody().getExpiration().before(new Date()));
-        LOGGER.trace("User: " + username + ". Is token issued after last password change: " + claims.getBody().getIssuedAt().after(user.getPasswordLastChangedDate()));
         return !claims.getBody().getExpiration().before(new Date())
                 && claims.getBody().getIssuedAt().after(user.getPasswordLastChangedDate());
     }
 
     private List<String> getRoleNames(Set<Roles> userRoles) {
         List<String> result = new ArrayList<>();
-
         userRoles.forEach(role -> {
             result.add(role.getAuthority());
         });
-
         return result;
     }
 }

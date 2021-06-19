@@ -1,6 +1,9 @@
 package com.diploma.app.controller.history;
 
+import com.diploma.app.dto.CategoryExpenditure;
+import com.diploma.app.model.Category;
 import com.diploma.app.model.Purchase;
+import com.diploma.app.model.PurchaseProduct;
 import com.diploma.app.service.PurchaseService;
 import com.diploma.app.service.UserService;
 import io.swagger.annotations.ApiOperation;
@@ -8,13 +11,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 @RestController
 @RequestMapping(value = "/api/history/")
@@ -39,9 +41,29 @@ public class HistoryController {
 
     @GetMapping("{id}")
     @ApiOperation(value = "Fetch purchase", consumes = "Path variable id", response = Purchase.class, produces = "Purchase object")
-    public Purchase getPurchase(@PathVariable Integer id) {
-        return purchaseService.findByIdAndCustomer(id, userService.findByUserName(getUserDetails().getUsername()))
+    public List<CategoryExpenditure> getPurchase(@PathVariable Integer id) {
+
+        Purchase purchase = purchaseService.findByIdAndCustomer(id, userService.findByUserName(getUserDetails().getUsername()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Purchase with id: " + id + " not found"));
+        Set<PurchaseProduct> purchaseProductSet = purchase.getPurchaseProducts();
+        List<CategoryExpenditure> expenditures = new ArrayList<>();
+        Set<Category> categories = new HashSet<>();
+        purchaseProductSet.forEach(p -> categories.add(p.getProduct().getCategory()));
+        categories.forEach(c -> {
+            double total = purchaseProductSet.stream().filter(p -> p.getProduct().getCategory().equals(c)).mapToDouble(p -> p.getPrice() * p.getQuantity()).sum();
+            expenditures.add(new CategoryExpenditure(c.getName(), total));
+        });
+        double a = expenditures.stream().mapToDouble(CategoryExpenditure::getAmount).sum();
+
+        return expenditures;
+    }
+
+    @GetMapping("filter")
+    @ApiOperation(value = "Fetch all purchases of the user", consumes = "Nothing", response = List.class, produces = "List of Purchase")
+    public List<Purchase> getAllPurchasesByDate(@RequestParam("from") Long from, @RequestParam("to") Long to) throws ParseException {
+        Date fromDate = new Date(from);
+        Date toDate = new Date(to);
+        return purchaseService.findAllByDateAndCustomer(fromDate, toDate, userService.findByUserName(getUserDetails().getUsername()));
     }
 
     private UserDetails getUserDetails() {

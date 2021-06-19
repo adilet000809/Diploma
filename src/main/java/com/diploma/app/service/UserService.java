@@ -1,6 +1,5 @@
 package com.diploma.app.service;
 
-import com.diploma.app.model.Supermarket;
 import com.diploma.app.model.Users;
 
 import java.util.List;

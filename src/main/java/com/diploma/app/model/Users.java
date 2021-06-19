@@ -34,6 +34,9 @@ public class Users extends BaseEntity {
     @Column(name = "email", unique = true)
     private String email;
 
+    @Column(name = "total")
+    private Double total = 0.0;
+
     @Column(name = "password")
     @JsonIgnore
     private String password;

@@ -85,6 +85,9 @@ public class ProductController {
         }
 
         Optional<Supermarket> supermarket = supermarketService.findById(productDto.getSupermarketId());
+        if (supermarket.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Supermarket not found");
+        }
         checkSupermarketAndManager(supermarket);
 
         Product product = productService.findByBarcode(productDto.getBarcode()).orElseGet(Product::new);
@@ -105,7 +108,6 @@ public class ProductController {
         product.addOrUpdateProduct(supermarketProduct);
         supermarketService.save(supermarket.get());
         productService.save(product);
-
         response.put("response", "Success");
         return ResponseEntity.ok().body(response);
 
@@ -125,7 +127,6 @@ public class ProductController {
         }
         Optional<Supermarket> supermarket = supermarketService.findById(oldProduct.getSupermarketId());
         checkSupermarketAndManager(supermarket);
-
         SupermarketProduct supermarketProduct = supermarketProductService.findById(
                 oldProduct.getId()).orElseGet(SupermarketProduct::new);
         supermarketProduct.setPrice(oldProduct.getPrice());
@@ -133,7 +134,6 @@ public class ProductController {
         supermarketProduct.setProduct(product.get());
         supermarketProduct.setSupermarket(supermarket.get());
         supermarketProductService.save(supermarketProduct);
-
         response.put("response", "Success");
         return ResponseEntity.ok().body(response);
 
@@ -142,22 +142,20 @@ public class ProductController {
     @DeleteMapping("manager/products")
     @ApiOperation(value = "Delete product", consumes = "Path variable id", response = String.class, produces = "Operation result response")
     public ResponseEntity<Map<String, String>> deleteProduct(@RequestParam("id") Integer id, @RequestParam("supermarketId") Integer supermarketId) {
-
         Map<String, String> response = new HashMap<>();
         Optional<Supermarket> supermarket = supermarketService.findById(supermarketId);
-
+        if (supermarket.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Supermarket not found");
+        }
         checkSupermarketAndManager(supermarket);
-
         Optional<Product> product = productService.findBySupermarketProductId(id);
         if (product.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found");
         }
-
         product.get().removeProduct(id);
         supermarket.get().removeProduct(id);
         productService.save(product.get());
         supermarketService.save(supermarket.get());
-
         response.put("response", "Success");
         return ResponseEntity.ok().body(response);
     }

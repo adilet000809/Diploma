@@ -18,7 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -34,6 +33,7 @@ import java.util.*;
 public class AuthController {
 
     private final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
+    private final  String PASSWORD_VALIDITY_REGEX = "^(?=.*[0-9]).{8,}$";
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
@@ -41,6 +41,7 @@ public class AuthController {
     private final PasswordResetTokenService passwordResetTokenService;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
+    private final SecureRandom secureRandom;
 
     @Autowired
     public AuthController(
@@ -49,13 +50,14 @@ public class AuthController {
             UserService userService,
             PasswordResetTokenService passwordResetTokenService,
             EmailService emailService,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder, SecureRandom secureRandom) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userService = userService;
         this.passwordResetTokenService = passwordResetTokenService;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
+        this.secureRandom = secureRandom;
     }
 
     @PostMapping("login")
@@ -67,18 +69,17 @@ public class AuthController {
             Users user = userService.findByUserName(userName);
 
             if (user == null) {
-                LOGGER.trace("User with username:" + userName + " not found. Throwing UsernameNotFoundException." );
                 throw new UsernameNotFoundException("User with username: " + userName + " not found");
             }
 
             String token = jwtTokenProvider.createToken(userName, user.getRoles());
 
             Map<String, Object> response = new HashMap<>();
-            response.put("userName", userName);
+            response.put("user", user);
             response.put("token", token);
             return ResponseEntity.ok(response);
         } catch (AuthenticationException e) {
-            throw new BadCredentialsException("Invalid username or password");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect username or password");
         }
     }
 
@@ -88,21 +89,26 @@ public class AuthController {
         Map<String, String> response = new HashMap<>();
         if (!userService.existsByEmail(registrationDTO.getEmail())) {
             if (!userService.existsByUserName(registrationDTO.getUserName())) {
-                Users user = new Users();
-                user.setFirstName(registrationDTO.getFirstName());
-                user.setLastName(registrationDTO.getLastName());
-                user.setUserName(registrationDTO.getUserName());
-                user.setEmail(registrationDTO.getEmail());
-                user.setPassword(passwordEncoder.encode(registrationDTO.getPassword()));
-                userService.register(user);
-                response.put("response", "Success");
-                return ResponseEntity.ok(response);
+                if (isValidPassword(registrationDTO.getPassword())) {
+                    Users user = new Users();
+                    user.setFirstName(registrationDTO.getFirstName());
+                    user.setLastName(registrationDTO.getLastName());
+                    user.setUserName(registrationDTO.getUserName());
+                    user.setEmail(registrationDTO.getEmail());
+                    user.setPassword(passwordEncoder.encode(registrationDTO.getPassword()));
+                    userService.register(user);
+                    response.put("response", "User has been registered successfully");
+                    return ResponseEntity.ok(response);
+                }
+                else {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password validation failed");
+                }
             }
             else {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email exists", new NotUniqueUserException("Username exists"));
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username exists", new NotUniqueUserException("Username exists"));
             }
         } else {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email exists", new NotUniqueUserException("Username exists"));
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email exists", new NotUniqueUserException("Email exists"));
         }
     }
 
@@ -117,8 +123,7 @@ public class AuthController {
 
         passwordResetTokenService.deleteAllByUser(user);
         PasswordResetToken passwordResetToken = new PasswordResetToken();
-        SecureRandom random = new SecureRandom();
-        passwordResetToken.setToken(random.nextInt(1000) + "" + random.nextInt(1000));
+        passwordResetToken.setToken((secureRandom.nextInt(900000) + 100000) + "");
         passwordResetToken.setExpiration();
         passwordResetToken.setUser(user);
         passwordResetTokenService.save(passwordResetToken);
@@ -146,7 +151,7 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password reset time is up");
         } else {
             if (passwordResetToken.getAttempts()>0) {
-                if (passwordResetDto.getToken().equals(passwordResetToken.getToken())) {
+                if (passwordResetDto.getCode().equals(passwordResetToken.getToken())) {
                     user.setPassword(passwordEncoder.encode(passwordResetDto.getNewPassword()));
                     user.setPasswordLastChangedDate(new Date());
                     passwordResetTokenService.deleteAllByUser(passwordResetToken.getUser());
@@ -174,6 +179,10 @@ public class AuthController {
         email.setText(token.getToken());
         email.setTo(userEmail);
         return email;
+    }
+
+    private boolean isValidPassword(String password) {
+        return password.matches(PASSWORD_VALIDITY_REGEX);
     }
 
 }

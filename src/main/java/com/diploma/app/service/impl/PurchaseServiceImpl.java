@@ -1,5 +1,6 @@
 package com.diploma.app.service.impl;
 
+import com.diploma.app.dto.CategoryExpenditure;
 import com.diploma.app.model.Purchase;
 import com.diploma.app.model.Users;
 import com.diploma.app.repository.PurchaseRepository;
@@ -7,6 +8,7 @@ import com.diploma.app.service.PurchaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,5 +40,15 @@ public class PurchaseServiceImpl implements PurchaseService {
     @Override
     public Optional<Purchase> findById(Integer id) {
         return purchaseRepository.findById(id);
+    }
+
+    @Override
+    public List<CategoryExpenditure> findExpenditure(Integer purchaseId) {
+        return purchaseRepository.findExpenditure(purchaseId);
+    }
+
+    @Override
+    public List<Purchase> findAllByDateAndCustomer(Date from, Date to, Users user) {
+        return purchaseRepository.findAllByDateBetweenAndCustomer(from, to, user);
     }
 }
